@@ -93,6 +93,60 @@
     inset 0 -0.5px 0 rgba(255,255,255,0.08);
 }
 
+/* ── TOUCH-REACTIVE GLASS HIGHLIGHT ──
+   Apple's real Liquid Glass bends light through the material itself
+   (SVG feDisplacementMap refraction) — confirmed by testing and by
+   WebKit's own bug tracker (#245510) that this does NOT render on
+   Safari/iOS at all when combined with backdrop-filter, only on
+   Chromium. Shipping that would look like nothing happened on the
+   exact device this app is tested on.
+   What IS genuinely portable, and is the other half of what makes
+   Liquid Glass feel alive — "a highlight that responds to where
+   you're touching the material" — is a radial-gradient positioned by
+   the actual touch point, updated live via pointer events. This runs
+   identically on Safari, Chrome, everywhere. Opt-in via .glass-touch. */
+.glass-touch {
+  position: relative;
+  overflow: hidden;
+  --touch-x: 50%; --touch-y: 50%; --touch-o: 0;
+}
+.glass-touch::after {
+  content: '';
+  position: absolute; inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(circle 120px at var(--touch-x) var(--touch-y),
+    rgba(255,255,255,0.35) 0%,
+    rgba(255,255,255,0.12) 35%,
+    transparent 70%);
+  opacity: var(--touch-o);
+  transition: opacity 0.35s ease;
+  pointer-events: none;
+  mix-blend-mode: overlay;
+}
+.glass-touch.touch-active::after { transition: opacity 0.08s ease; }
+/* Same effect for surfaces that need their own scroll (overflow-y:auto)
+   and can't take .glass-touch's overflow:hidden — the highlight clips to
+   its own border-radius instead of relying on the parent to clip it. */
+.glass-touch-noclip {
+  position: relative;
+  --touch-x: 50%; --touch-y: 50%; --touch-o: 0;
+}
+.glass-touch-noclip::after {
+  content: '';
+  position: absolute; inset: 0;
+  border-radius: var(--r-xl);
+  background: radial-gradient(circle 120px at var(--touch-x) var(--touch-y),
+    rgba(255,255,255,0.35) 0%,
+    rgba(255,255,255,0.12) 35%,
+    transparent 70%);
+  opacity: var(--touch-o);
+  transition: opacity 0.35s ease;
+  pointer-events: none;
+  mix-blend-mode: overlay;
+  z-index: 1;
+}
+.glass-touch-noclip.touch-active::after { transition: opacity 0.08s ease; }
+
 /* ── Apple Spring Animation Utilities ── */
 @keyframes appleScaleIn { from { transform: scale(0.92); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 @keyframes appleFadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
@@ -658,7 +712,26 @@ body {
 #fp-art-wrap {
   display:flex; justify-content:center; align-items:center;
   padding:0 36px; margin-bottom:34px; flex-shrink:0;
+  transition:padding 0.45s var(--apple-spring), margin 0.45s var(--apple-spring);
 }
+/* Lyrics mode: artwork shrinks to a small corner thumbnail instead of
+   staying at its full 340px size, genuinely freeing vertical space for
+   the lyrics pane — not lyrics squeezed into the same fixed box the
+   queue list uses. Toggled via [data-lyrics-mode] on #full-player. */
+#full-player[data-lyrics-mode] #fp-art-wrap {
+  padding:0 26px; margin-bottom:14px;
+  justify-content:flex-start;
+}
+#full-player[data-lyrics-mode] #fp-art {
+  width:64px !important; height:64px !important;
+  border-radius:12px;
+  transform:scale(1) !important; box-shadow:0 4px 12px rgba(0,0,0,0.4) !important;
+}
+#full-player[data-lyrics-mode] #fp-meta {
+  margin-bottom:10px;
+}
+#full-player[data-lyrics-mode] #fp-title { font-size:19px; }
+#full-player[data-lyrics-mode] #fp-artist { font-size:15px; }
 #fp-art {
   border-radius:20px; overflow:hidden;
   background:var(--surface);
@@ -667,7 +740,8 @@ body {
     0 24px 60px rgba(0,0,0,0.55),
     0 8px 22px rgba(0,0,0,0.4),
     0 4px 14px var(--dynamic-color1);
-  transition:transform 0.55s var(--apple-spring), box-shadow 0.55s var(--ease), opacity 0.12s linear;
+  transition:transform 0.55s var(--apple-spring), box-shadow 0.55s var(--ease), opacity 0.12s linear,
+    width 0.45s var(--apple-spring), height 0.45s var(--apple-spring), border-radius 0.45s var(--ease);
   will-change:transform;
 }
 #fp-art.playing {
@@ -1438,11 +1512,11 @@ body {
 <div id="sleep-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg><span id="sleep-txt">30:00</span></div>
 
 <!-- Context menu -->
-<div id="ctx"></div>
+<div id="ctx" class="glass-touch"></div>
 
 <!-- Modal -->
 <div id="modal-ov" onclick="if(event.target===this)closeModal()">
-  <div id="modal-sheet">
+  <div id="modal-sheet" class="glass-touch-noclip">
     <div class="modal-handle"></div>
     <div id="modal-body"></div>
   </div>
@@ -1767,7 +1841,7 @@ body {
 
   <!-- MINI PLAYER -->
   <div id="player-bar">
-    <div id="player-pill" onclick="openFullPlayer()">
+    <div id="player-pill" class="glass-touch" onclick="openFullPlayer()">
       <div id="pp-progress"><div id="pp-fill"></div></div>
       <div id="pp-art">
         <div id="pp-art-ph"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg></div>
@@ -1814,7 +1888,7 @@ body {
       </button>
     </div>
     <div id="fp-art-wrap">
-      <div id="fp-art" class="paused">
+      <div id="fp-art" class="paused glass-touch">
         <div id="fp-art-ph"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="color:rgba(255,255,255,0.35)"><path d="M9 19V6l12-3v13"/><circle cx="6" cy="19" r="3"/><circle cx="18" cy="16" r="3"/></svg></div>
         <img id="fp-art-img" style="display:none;width:100%;height:100%;object-fit:cover" alt="" onerror="imgErr(this)">
       </div>
@@ -4306,16 +4380,64 @@ function openFullPlayer() {
       flip.style.borderRadius = '20px';
     });
 
-    setTimeout(() => {
+    // If the track was just started, its artwork may still be loading
+    // (posed asynchronously after audio.play() resolves, not at click
+    // time) — watch the mini-player's own art slot and, the moment a real
+    // image lands there, cross-fade the clone to match instead of flying
+    // the whole distance frozen on a gray placeholder. The clone is only
+    // handed off to the real #fp-art once this resolves (image found, or
+    // the ~1.5s ceiling is hit for a track with genuinely no artwork) —
+    // never on a fixed timer that might fire before loading is done.
+    _watchFlipArtworkArrival(flip, () => {
       flip.classList.remove('active');
       $('fp-art').style.opacity = '';
-    }, 460);
+    });
   } else {
     // Fallback: no mini-player visible to fly from (e.g. first launch,
     // nothing has ever played) — just open normally, no clone needed.
     fp.classList.add('open');
     updateQueueUI();
   }
+}
+
+let _flipArtWatcher = null;
+function _watchFlipArtworkArrival(flip, onSettle) {
+  if (_flipArtWatcher) { clearInterval(_flipArtWatcher); _flipArtWatcher = null; }
+  const MIN_FLIGHT_MS = 460;   // let the fly-to-position motion complete even if art was already there
+  const MAX_WAIT_MS = 1600;    // ceiling for a track that genuinely has no artwork
+  const start = Date.now();
+  const alreadyHasImage = !!flip.querySelector('img');
+
+  function settle() {
+    clearInterval(_flipArtWatcher); _flipArtWatcher = null;
+    onSettle();
+  }
+
+  if (alreadyHasImage) {
+    // Artwork was already available at click time — just let the normal
+    // flight duration play out, no polling needed.
+    setTimeout(settle, MIN_FLIGHT_MS);
+    return;
+  }
+
+  _flipArtWatcher = setInterval(() => {
+    const elapsed = Date.now() - start;
+    const img = $('pp-art-img');
+    const found = img && img.style.display !== 'none' && img.src;
+    if (found) {
+      flip.style.transition += ', opacity 0.18s ease';
+      flip.style.opacity = '0.4';
+      requestAnimationFrame(() => {
+        flip.innerHTML = `<img src="${img.src}" alt="">`;
+        flip.style.opacity = '1';
+      });
+      // Still honor the minimum flight time so a fast-loading image
+      // doesn't cut the fly-to-position motion short.
+      setTimeout(settle, Math.max(0, MIN_FLIGHT_MS - elapsed) + 180);
+    } else if (elapsed > MAX_WAIT_MS || !flip.classList.contains('active')) {
+      settle();
+    }
+  }, 100);
 }
 
 function closeFullPlayer() {
@@ -4386,6 +4508,10 @@ document.querySelectorAll('.fp-tab').forEach((tab, tabIdx)=>{
     other.classList.remove('open');
     target.classList.add(enterDir);
     target.classList.add('open');
+    // Shrinks the artwork to a corner thumbnail, freeing real vertical
+    // space for the lyrics pane — see the [data-lyrics-mode] CSS block.
+    if (showQueue) $('full-player').removeAttribute('data-lyrics-mode');
+    else $('full-player').setAttribute('data-lyrics-mode', '');
     // Force a reflow so the entering-* transform is actually applied before
     // we remove it — otherwise the browser coalesces both class changes
     // into one paint and the slide-in never plays.
@@ -4911,6 +5037,47 @@ async function init() {
 }
 
 init();
+
+// ─── TOUCH-REACTIVE GLASS HIGHLIGHT ─────────────────────────
+// Single delegated listener set (not one per .glass-touch element) drives
+// the specular highlight position for whichever glass surface is currently
+// being touched. See the .glass-touch CSS comment for why this technique
+// was chosen over SVG displacement-map refraction (the latter doesn't
+// render at all on Safari/iOS when combined with backdrop-filter).
+(function () {
+  let activeEl = null;
+
+  function setTouchPos(el, clientX, clientY) {
+    const r = el.getBoundingClientRect();
+    const x = ((clientX - r.left) / r.width) * 100;
+    const y = ((clientY - r.top) / r.height) * 100;
+    el.style.setProperty('--touch-x', x + '%');
+    el.style.setProperty('--touch-y', y + '%');
+  }
+
+  document.addEventListener('pointerdown', (e) => {
+    const el = e.target.closest && e.target.closest('.glass-touch, .glass-touch-noclip');
+    if (!el) return;
+    activeEl = el;
+    el.classList.add('touch-active');
+    setTouchPos(el, e.clientX, e.clientY);
+    el.style.setProperty('--touch-o', '1');
+  }, { passive: true });
+
+  document.addEventListener('pointermove', (e) => {
+    if (!activeEl) return;
+    setTouchPos(activeEl, e.clientX, e.clientY);
+  }, { passive: true });
+
+  function release() {
+    if (!activeEl) return;
+    activeEl.style.setProperty('--touch-o', '0');
+    activeEl.classList.remove('touch-active');
+    activeEl = null;
+  }
+  document.addEventListener('pointerup', release, { passive: true });
+  document.addEventListener('pointercancel', release, { passive: true });
+})();
 
 // ─── LIQUID GLASS BUBBLE INDICATOR ──────────────────────────
 // Watches .mn-item.active changes and animates a glass bubble
