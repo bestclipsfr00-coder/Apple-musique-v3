@@ -663,11 +663,15 @@ body {
 }
 #fp-inner > #fp-tab-body { flex:1 1 auto; min-height:0; }
 
-/* Explicit order establishes the natural top-to-bottom layout as a
-   baseline, which queue/lyrics mode then overrides below — this is what
-   lets those modes genuinely reorder the screen (content right under the
-   shrunk artwork, transport controls pushed down) without duplicating any
-   HTML structure. */
+/* Explicit order establishes the natural top-to-bottom layout as the
+   DEFAULT "play" mode baseline: title -> seek/time -> transport -> volume
+   -> (tabs/content hidden entirely in this mode).
+   Queue/lyrics mode below overrides this significantly — matching the
+   reference screenshots exactly: tabs and their content (track list /
+   lyrics) sit directly under the shrunk artwork, and seek/times/transport
+   controls/volume are pushed all the way to the bottom, below the
+   content, compact — not sandwiched between the artwork and the content
+   like a wall to scroll past. */
 #fp-hd            { order:0; }
 #fp-art-wrap      { order:1; }
 #fp-meta          { order:2; }
@@ -680,12 +684,10 @@ body {
 #fp-tab-body      { order:9; }
 #fp-quickaccess   { order:10; }
 
-/* Queue/lyrics mode: the content the person actually opened this mode to
-   see (track list or lyrics) sits directly under the shrunk artwork/title,
-   not several screens' worth of full-size transport controls below —
-   matching the reference screenshots, where these controls are pushed to
-   the very bottom, compact, rather than sitting between the artwork and
-   the content like a wall to scroll past. */
+/* Queue/lyrics mode reorder — content immediately after the shrunk
+   artwork/title, transport controls and volume pushed to the very
+   bottom. This is the fix for controls appearing "too high, sandwiched
+   above the content" instead of at the bottom like Apple's own layout. */
 #full-player[data-fp-mode="queue"] #fp-tabs,
 #full-player[data-fp-mode="lyrics"] #fp-tabs { order:3; }
 #full-player[data-fp-mode="queue"] #fp-tab-body,
@@ -730,7 +732,10 @@ body {
 #fp-hd {
   display:flex; align-items:center; justify-content:center;
   padding:10px 22px 16px; position:relative;
+  transition:padding 0.3s var(--ease);
 }
+#full-player[data-fp-mode="queue"] #fp-hd,
+#full-player[data-fp-mode="lyrics"] #fp-hd { padding:8px 22px 8px; }
 #fp-down {
   width:40px; height:5px; border-radius:3px; padding:0;
   background:rgba(255,255,255,0.32); border:none; color:transparent;
@@ -837,6 +842,8 @@ body {
 
 /* FP Seek */
 #fp-seek-wrap { padding:0 26px; margin-bottom:6px; position:relative; }
+#full-player[data-fp-mode="queue"] #fp-seek-wrap,
+#full-player[data-fp-mode="lyrics"] #fp-seek-wrap { margin-bottom:2px; }
 #fp-seek {
   width:100%; height:5px; cursor:pointer;
   -webkit-appearance:none; appearance:none;
@@ -872,6 +879,8 @@ body {
   display:flex; justify-content:space-between; align-items:center;
   padding:6px 26px 0; font-size:12px; color:var(--text3); font-variant-numeric:tabular-nums;
 }
+#full-player[data-fp-mode="queue"] #fp-times,
+#full-player[data-fp-mode="lyrics"] #fp-times { padding:2px 26px 0; }
 #fp-state {
   display:inline-flex; align-items:center; justify-content:center;
   font-size:12px; font-weight:600; color:rgba(255,255,255,0.78);
@@ -934,6 +943,8 @@ body {
   display:flex; align-items:center; gap:10px;
   padding:4px 26px 12px;
 }
+#full-player[data-fp-mode="queue"] #fp-vol-row,
+#full-player[data-fp-mode="lyrics"] #fp-vol-row { padding:2px 26px calc(var(--safe-b) + 8px); }
 #fp-vol-row svg { width:16px; height:16px; color:var(--text3); flex-shrink:0; }
 #fp-vol {
   flex:1; height:4px; -webkit-appearance:none; appearance:none;
@@ -1051,10 +1062,10 @@ body {
    only in queue mode, not at all times. */
 #fp-queue-toggles {
   display:flex; align-items:center; justify-content:space-around;
-  padding:2px 12px 14px;
+  padding:2px 12px 10px;
 }
 .fp-qtoggle {
-  flex:1; max-width:76px; height:40px; border-radius:20px; border:none;
+  flex:1; max-width:76px; height:34px; border-radius:17px; border:none;
   background:rgba(255,255,255,0.08); color:rgba(255,255,255,0.7);
   display:flex; align-items:center; justify-content:center;
   cursor:pointer; margin:0 4px;
@@ -1120,6 +1131,60 @@ body {
   padding:0 24px 16px;
 }
 .eq-toggle-label { font-size:15px; color:var(--text2); }
+
+/* ── SETTINGS CARDS ──
+   A proper glass-card row structure, matching the visual language used
+   everywhere else in the app (surfaces, rounded corners, subtle
+   separators) instead of raw inline-styled text blocks with no visual
+   grouping at all. */
+.settings-card {
+  background:var(--surface); border:1px solid var(--glass-border);
+  border-radius:var(--r-lg); overflow:hidden;
+}
+.settings-row {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:14px 16px; min-height:24px;
+  border-bottom:0.5px solid var(--glass-border);
+}
+.settings-row:last-child { border-bottom:none; }
+.settings-row-label { font-size:15px; color:var(--text1); }
+.settings-row-sub { font-size:12px; color:var(--text3); margin-top:2px; }
+.settings-row-value { font-size:15px; color:var(--text2); font-variant-numeric:tabular-nums; }
+.settings-stat-row {
+  display:flex; align-items:center; gap:12px;
+  padding:12px 16px;
+  border-bottom:0.5px solid var(--glass-border);
+}
+.settings-stat-row:last-child { border-bottom:none; }
+.settings-stat-icon {
+  width:32px; height:32px; border-radius:9px; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center;
+  font-size:16px; background:rgba(255,255,255,0.06);
+}
+.settings-stat-text { flex:1; min-width:0; }
+.settings-stat-value { font-size:15px; font-weight:600; color:var(--text1); }
+.settings-stat-label { font-size:12px; color:var(--text3); margin-top:1px; }
+.settings-danger-btn {
+  display:flex; align-items:center; justify-content:center; gap:8px;
+  width:100%; padding:14px; border:none; background:none;
+  color:#ff453a; font-size:15px; font-weight:600; font-family:var(--font);
+  cursor:pointer; transition:background 0.15s;
+}
+.settings-danger-btn:hover { background:rgba(255,69,58,0.08); }
+.settings-danger-btn:active { transform:scale(0.98); }
+.settings-about-card {
+  padding:18px 16px; text-align:center;
+}
+.settings-about-icon {
+  width:56px; height:56px; border-radius:14px; margin:0 auto 12px;
+  background:linear-gradient(135deg,#fc3c44,#c72e35);
+  display:flex; align-items:center; justify-content:center;
+  box-shadow:0 6px 18px rgba(252,60,68,0.35);
+}
+.settings-about-icon svg { width:30px; height:30px; }
+.settings-about-name { font-size:16px; font-weight:700; color:var(--text1); }
+.settings-about-version { font-size:12px; color:var(--text3); margin-top:2px; }
+.settings-about-desc { font-size:13px; color:var(--text2); margin-top:10px; line-height:1.5; }
 /* iOS-style toggle */
 .toggle { position:relative; display:inline-block; width:46px; height:28px; }
 .toggle input { opacity:0; width:0; height:0; }
@@ -1892,34 +1957,45 @@ body {
       <!-- SETTINGS -->
       <div class="view" id="view-settings">
         <div class="ph"><div class="ph-title">Paramètres</div></div>
-        <div style="padding:0 20px">
-          <div class="section" style="padding:0;margin-bottom:20px">
+        <div style="padding:0 20px 40px">
+          <div class="section" style="padding:0;margin-bottom:22px">
             <div class="section-hd"><div class="section-title">🎵 Musique</div></div>
-            <div id="settings-stats" style="font-size:14px;color:var(--text2);line-height:1.8"></div>
+            <div class="settings-card" id="settings-stats"></div>
           </div>
-          <div class="section" style="padding:0;margin-bottom:20px">
+          <div class="section" style="padding:0;margin-bottom:22px">
             <div class="section-hd"><div class="section-title">⚙️ Lecture</div></div>
-
-            <div class="eq-toggle-row" style="padding:0 0 8px">
-              <span class="eq-toggle-label">Son spatial (simulation)</span>
-              <label class="toggle"><input type="checkbox" id="spatial-toggle"><span class="tslider"></span></label>
-            </div>
-            <div class="eq-toggle-row" style="padding:0 0 8px">
-              <span class="eq-toggle-label">Qualité haute (96kHz)</span>
-              <label class="toggle"><input type="checkbox" id="hq-toggle" checked><span class="tslider"></span></label>
+            <div class="settings-card">
+              <div class="settings-row">
+                <div>
+                  <div class="settings-row-label">Son spatial (simulation)</div>
+                  <div class="settings-row-sub">Élargit l'image stéréo</div>
+                </div>
+                <label class="toggle"><input type="checkbox" id="spatial-toggle"><span class="tslider"></span></label>
+              </div>
+              <div class="settings-row">
+                <div>
+                  <div class="settings-row-label">Qualité haute (96kHz)</div>
+                  <div class="settings-row-sub">Meilleur rendu, plus de stockage</div>
+                </div>
+                <label class="toggle"><input type="checkbox" id="hq-toggle" checked><span class="tslider"></span></label>
+              </div>
             </div>
           </div>
-          <div class="section" style="padding:0;margin-bottom:20px">
+          <div class="section" style="padding:0;margin-bottom:22px">
             <div class="section-hd"><div class="section-title">📊 Stockage</div></div>
-            <button class="modal-btn secondary" style="margin:0;width:100%;color:#ff453a" onclick="clearAllData()">🗑️ Effacer toutes les données</button>
+            <div class="settings-card">
+              <button class="settings-danger-btn" onclick="clearAllData()">🗑️ Effacer toutes les données</button>
+            </div>
           </div>
-          <div class="section" style="padding:0;margin-bottom:20px">
+          <div class="section" style="padding:0;margin-bottom:22px">
             <div class="section-hd"><div class="section-title">ℹ️ À propos</div></div>
-            <div style="font-size:14px;color:var(--text2);line-height:1.8">
-              <div><strong style="color:var(--text1)">Coco Music</strong></div>
-              <div>Version 3.0.0</div>
-              <div>Lecteur musical local sans serveur</div>
-              <div style="margin-top:8px">Tout le contenu reste sur votre appareil via IndexedDB.</div>
+            <div class="settings-card settings-about-card">
+              <div class="settings-about-icon">
+                <svg viewBox="0 0 60 60" fill="none"><path d="M16 42V22l26-7v22" stroke="white" stroke-width="4" stroke-linecap="round"/><circle cx="16" cy="42" r="6" fill="white"/><circle cx="42" cy="35" r="6" fill="white"/></svg>
+              </div>
+              <div class="settings-about-name">Coco Music</div>
+              <div class="settings-about-version">Version 3.0.0</div>
+              <div class="settings-about-desc">Lecteur musical local sans serveur.<br>Tout le contenu reste sur votre appareil via IndexedDB.</div>
             </div>
           </div>
         </div>
@@ -2023,8 +2099,8 @@ body {
     </div>
     <div id="fp-tabs">
       <div class="fp-tab-pill" id="fp-tab-pill"></div>
-      <div class="fp-tab" data-tab="queue">File d'attente</div>
       <div class="fp-tab" data-tab="lyrics">Paroles</div>
+      <div class="fp-tab" data-tab="queue">File d'attente</div>
     </div>
     <div id="fp-tab-body">
       <div id="fp-queue">
@@ -4622,7 +4698,7 @@ function _setFpMode(mode) {
   document.querySelectorAll('.fp-tab').forEach(t => {
     t.classList.toggle('active', t.dataset.tab === mode);
   });
-  $('fp-tab-pill').style.transform = mode === 'lyrics' ? 'translateX(100%)' : 'translateX(0)';
+  $('fp-tab-pill').style.transform = mode === 'queue' ? 'translateX(100%)' : 'translateX(0)';
 
   if (mode === 'play') {
     // Both panes close; nothing to show until a mode is picked again.
@@ -4632,7 +4708,7 @@ function _setFpMode(mode) {
   }
 
   const showQueue = mode === 'queue';
-  const enterDir = showQueue ? 'entering-left' : 'entering-right'; // queue is left tab, lyrics is right
+  const enterDir = showQueue ? 'entering-right' : 'entering-left'; // lyrics is now the left tab, queue is right
   const target = showQueue ? $('fp-queue') : $('fp-lyrics');
   const other = showQueue ? $('fp-lyrics') : $('fp-queue');
   other.classList.remove('open');
@@ -4699,10 +4775,16 @@ async function _fetchLyricsLRCLIB(track) {
   try {
     const params = new URLSearchParams({ track_name: track.title, artist_name: track.artist });
     if (track.album && track.album !== 'Album inconnu') params.set('album_name', track.album);
-    // Try search endpoint (more flexible matching)
-    const res = await fetch('https://lrclib.net/api/search?' + params.toString(), {
-      headers: { 'User-Agent': 'CocoMusic/3.0 (https://github.com/cococorentin24-create/Apple-musique)' }
-    });
+    // No custom headers here on purpose: a custom header on a cross-origin
+    // fetch() forces the browser to send a CORS preflight (OPTIONS) first,
+    // and if the server doesn't explicitly allow that exact header, the
+    // WHOLE request fails before it's even sent — this was almost
+    // certainly why lyrics silently stopped working (LRCLIB's CORS policy
+    // or Safari's enforcement of it changing is enough to break this).
+    // User-Agent specifically is also a browser-forbidden header per the
+    // Fetch spec — browsers refuse to let JS set it at all — so it was
+    // pure risk for zero actual benefit.
+    const res = await fetch('https://lrclib.net/api/search?' + params.toString());
     if (!res.ok) return null;
     const results = await res.json();
     if (!results.length) return null;
@@ -4986,13 +5068,21 @@ function renderSettings() {
   const totalDur = library.reduce((s, t) => s + (t.duration || 0), 0);
   const h = Math.floor(totalDur / 3600);
   const m = Math.floor((totalDur % 3600) / 60);
-  $('settings-stats').innerHTML = `
-    <div>🎵 ${totalSize} titre${totalSize !== 1 ? 's' : ''}</div>
-    <div>⏱️ ${h}h${String(m).padStart(2, '0')}mn au total</div>
-    <div>📀 ${new Set(library.map(t => t.album)).size} album(s)</div>
-    <div>🎤 ${new Set(library.map(t => t.artist)).size} artiste(s)</div>
-    <div>📂 ${playlists.length} playlist(s)</div>
-  `;
+  const stats = [
+    { icon:'🎵', value:`${totalSize} titre${totalSize !== 1 ? 's' : ''}`, label:'Bibliothèque' },
+    { icon:'⏱️', value:`${h}h${String(m).padStart(2, '0')}mn`, label:'Durée totale' },
+    { icon:'📀', value:`${new Set(library.map(t => t.album)).size}`, label:'Album(s)' },
+    { icon:'🎤', value:`${new Set(library.map(t => t.artist)).size}`, label:'Artiste(s)' },
+    { icon:'📂', value:`${playlists.length}`, label:'Playlist(s)' },
+  ];
+  $('settings-stats').innerHTML = stats.map(s => `
+    <div class="settings-stat-row">
+      <div class="settings-stat-icon">${s.icon}</div>
+      <div class="settings-stat-text">
+        <div class="settings-stat-value">${s.value}</div>
+        <div class="settings-stat-label">${s.label}</div>
+      </div>
+    </div>`).join('');
   $('spatial-toggle').addEventListener('change', e => {
     if (e.target.checked) enableSpatialAudio();
     else disableSpatialAudio();
