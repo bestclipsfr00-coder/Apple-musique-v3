@@ -573,7 +573,6 @@ body {
   backdrop-filter:blur(18px) saturate(180%);
   -webkit-backdrop-filter:blur(18px) saturate(180%);
   will-change:backdrop-filter;
-  transform:translateZ(0);
   border-top:0.5px solid var(--glass-border);
   padding:6px 0 calc(var(--safe-b) + 2px);
   flex-direction:row; justify-content:space-around;
@@ -664,6 +663,42 @@ body {
 }
 #fp-inner > #fp-tab-body { flex:1 1 auto; min-height:0; }
 
+/* Explicit order establishes the natural top-to-bottom layout as a
+   baseline, which queue/lyrics mode then overrides below — this is what
+   lets those modes genuinely reorder the screen (content right under the
+   shrunk artwork, transport controls pushed down) without duplicating any
+   HTML structure. */
+#fp-hd            { order:0; }
+#fp-art-wrap      { order:1; }
+#fp-meta          { order:2; }
+#fp-seek-wrap     { order:3; }
+#fp-times         { order:4; }
+#fp-vis           { order:5; }
+#fp-controls      { order:6; }
+#fp-vol-row       { order:7; }
+#fp-tabs          { order:8; }
+#fp-tab-body      { order:9; }
+#fp-quickaccess   { order:10; }
+
+/* Queue/lyrics mode: the content the person actually opened this mode to
+   see (track list or lyrics) sits directly under the shrunk artwork/title,
+   not several screens' worth of full-size transport controls below —
+   matching the reference screenshots, where these controls are pushed to
+   the very bottom, compact, rather than sitting between the artwork and
+   the content like a wall to scroll past. */
+#full-player[data-fp-mode="queue"] #fp-tabs,
+#full-player[data-fp-mode="lyrics"] #fp-tabs { order:3; }
+#full-player[data-fp-mode="queue"] #fp-tab-body,
+#full-player[data-fp-mode="lyrics"] #fp-tab-body { order:4; }
+#full-player[data-fp-mode="queue"] #fp-seek-wrap,
+#full-player[data-fp-mode="lyrics"] #fp-seek-wrap { order:5; }
+#full-player[data-fp-mode="queue"] #fp-times,
+#full-player[data-fp-mode="lyrics"] #fp-times { order:6; }
+#full-player[data-fp-mode="queue"] #fp-controls,
+#full-player[data-fp-mode="lyrics"] #fp-controls { order:7; }
+#full-player[data-fp-mode="queue"] #fp-vol-row,
+#full-player[data-fp-mode="lyrics"] #fp-vol-row { order:8; }
+
 /* Secondary-content staggered reveal — while the artwork flies via the
    FLIP clone, everything else (title, seek bar, transport controls, tabs)
    fades/rises in independently with a short per-element delay. This is
@@ -714,24 +749,31 @@ body {
   padding:0 36px; margin-bottom:34px; flex-shrink:0;
   transition:padding 0.45s var(--apple-spring), margin 0.45s var(--apple-spring);
 }
-/* Lyrics mode: artwork shrinks to a small corner thumbnail instead of
-   staying at its full 340px size, genuinely freeing vertical space for
-   the lyrics pane — not lyrics squeezed into the same fixed box the
-   queue list uses. Toggled via [data-lyrics-mode] on #full-player. */
-#full-player[data-lyrics-mode] #fp-art-wrap {
+/* Queue and lyrics mode both shrink the artwork to a small corner
+   thumbnail instead of it staying at its full 340px size — matching the
+   reference screenshots, where both modes show the same compact artwork
+   treatment, freeing real vertical space for their respective content
+   (track list / lyrics text) rather than either living inside a fixed box
+   underneath a still-huge, now-mostly-decorative album cover. */
+#full-player[data-fp-mode="lyrics"] #fp-art-wrap,
+#full-player[data-fp-mode="queue"] #fp-art-wrap {
   padding:0 26px; margin-bottom:14px;
   justify-content:flex-start;
 }
-#full-player[data-lyrics-mode] #fp-art {
+#full-player[data-fp-mode="lyrics"] #fp-art,
+#full-player[data-fp-mode="queue"] #fp-art {
   width:64px !important; height:64px !important;
   border-radius:12px;
   transform:scale(1) !important; box-shadow:0 4px 12px rgba(0,0,0,0.4) !important;
 }
-#full-player[data-lyrics-mode] #fp-meta {
+#full-player[data-fp-mode="lyrics"] #fp-meta,
+#full-player[data-fp-mode="queue"] #fp-meta {
   margin-bottom:10px;
 }
-#full-player[data-lyrics-mode] #fp-title { font-size:19px; }
-#full-player[data-lyrics-mode] #fp-artist { font-size:15px; }
+#full-player[data-fp-mode="lyrics"] #fp-title,
+#full-player[data-fp-mode="queue"] #fp-title { font-size:19px; }
+#full-player[data-fp-mode="lyrics"] #fp-artist,
+#full-player[data-fp-mode="queue"] #fp-artist { font-size:15px; }
 #fp-art {
   border-radius:20px; overflow:hidden;
   background:var(--surface);
@@ -854,18 +896,32 @@ body {
   display:flex; align-items:center; justify-content:center;
   gap:clamp(8px,3.5vw,24px);
   padding:14px 26px 18px;
+  transition:padding 0.35s var(--ease);
 }
+#full-player[data-fp-mode="queue"] #fp-controls,
+#full-player[data-fp-mode="lyrics"] #fp-controls {
+  padding:6px 26px 10px;
+}
+/* Shuffle/repeat are already covered by the dedicated toggle row at the
+   top of queue mode — showing them again here would be a second,
+   redundant pair of shuffle/repeat buttons on the same screen. */
+#full-player[data-fp-mode="queue"] #fp-shuf-btn,
+#full-player[data-fp-mode="queue"] #fp-rep-btn { display:none; }
 .fp-ctrl {
   width:56px; height:56px; border-radius:50%; border:none;
   background:transparent; color:var(--text1);
   display:flex; align-items:center; justify-content:center;
   cursor:pointer;
-  transition:transform 0.34s var(--spring), color 0.2s var(--ease), opacity 0.2s var(--ease);
+  transition:transform 0.34s var(--spring), color 0.2s var(--ease), opacity 0.2s var(--ease), width 0.35s var(--ease), height 0.35s var(--ease);
 }
 .fp-ctrl:hover { transform:scale(1.07); }
 .fp-ctrl:active { transform:scale(0.82); transition:transform 0.1s var(--ease); }
 .fp-ctrl svg { width:26px; height:26px; }
 .fp-ctrl.main { width:80px; height:80px; }
+#full-player[data-fp-mode="queue"] .fp-ctrl.main,
+#full-player[data-fp-mode="lyrics"] .fp-ctrl.main { width:56px; height:56px; }
+#full-player[data-fp-mode="queue"] .fp-ctrl.main svg,
+#full-player[data-fp-mode="lyrics"] .fp-ctrl.main svg { width:44px; height:44px; }
 .fp-ctrl.main:active { transform:scale(0.9); }
 .fp-ctrl.main svg { width:64px; height:64px; filter:drop-shadow(0 2px 10px rgba(0,0,0,0.35)); }
 .fp-ctrl.dim { width:48px; height:48px; color:rgba(255,255,255,0.5); }
@@ -889,13 +945,16 @@ body {
 
 /* FP Tabs — Apple glass segmented control */
 #fp-tabs {
-  display:flex; margin:6px 26px 14px;
+  display:none;
+  margin:6px 26px 14px;
   background:rgba(255,255,255,0.07);
   -webkit-backdrop-filter:blur(20px) saturate(180%); backdrop-filter:blur(20px) saturate(180%);
   border:0.5px solid rgba(255,255,255,0.08);
   border-radius:999px; padding:3px;
   position:relative;
 }
+#full-player[data-fp-mode="lyrics"] #fp-tabs,
+#full-player[data-fp-mode="queue"] #fp-tabs { display:flex; }
 /* Sliding selection pill — a single element that moves between tab
    positions (native iOS segmented-control behavior), rather than each tab
    independently toggling its own background. This is what makes the
@@ -920,6 +979,7 @@ body {
 .fp-tab.active { color:var(--text1); }
 
 #fp-tab-body { flex:1; overflow:hidden; min-height:0; display:flex; flex-direction:column; position:relative; }
+#full-player[data-fp-mode="play"] #fp-tab-body { flex:0; min-height:0; }
 /* Directional content transition — the tab body slides in from the side
    matching which tab was pressed, so the switch reads as "sliding the
    selected pane into view" rather than an instant content swap that has
@@ -957,23 +1017,52 @@ body {
 .lyr-ph p { font-size:14px; }
 
 /* FP Extras */
-#fp-extras {
+/* ── QUICK ACCESS ROW (default state) ──
+   Matches the reference screenshot's bottom row: a lyrics icon, the
+   current output device, and a queue icon — visible in the default
+   "play" mode, and hidden once either tab is opened (the tabs/pill take
+   over that space instead). This replaces a permanently-visible row of
+   four settings buttons (CrossFade/Sleep Timer/AirPlay/Speed) that had
+   no equivalent in Apple's own layout at all. */
+#fp-quickaccess {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:10px 30px calc(var(--safe-b) + 18px);
+}
+#full-player[data-fp-mode="lyrics"] #fp-quickaccess,
+#full-player[data-fp-mode="queue"] #fp-quickaccess { display:none; }
+.fp-qa-btn {
+  width:38px; height:38px; border-radius:50%; border:none;
+  background:none; color:rgba(255,255,255,0.65);
+  display:flex; align-items:center; justify-content:center;
+  cursor:pointer; transition:color 0.2s, transform 0.25s var(--spring), background 0.2s;
+}
+.fp-qa-btn:hover { background:rgba(255,255,255,0.08); color:#fff; }
+.fp-qa-btn:active { transform:scale(0.85); }
+.fp-qa-btn svg { width:21px; height:21px; }
+#fp-qa-device {
+  display:flex; flex-direction:column; align-items:center; gap:2px;
+  color:rgba(255,255,255,0.5); font-size:10px; font-weight:600;
+}
+#fp-qa-device svg { width:19px; height:19px; margin-bottom:1px; }
+
+/* ── QUEUE MODE TOGGLE STRIP ──
+   Shuffle/repeat/CrossFade/AirPlay, shown specifically alongside the
+   track list — matching the reference screenshot, where these appear
+   only in queue mode, not at all times. */
+#fp-queue-toggles {
   display:flex; align-items:center; justify-content:space-around;
-  padding:8px 16px calc(var(--safe-b) + 16px);
-  background:transparent !important;
-  border-top:none;
+  padding:2px 12px 14px;
 }
-.fp-extra {
-  display:flex; flex-direction:column; align-items:center; gap:5px;
-  background:none; border:none; color:var(--text2);
-  cursor:pointer; font-size:10px; font-weight:600; font-family:var(--font);
-  padding:8px 10px; border-radius:var(--r-md);
-  transition:background 0.15s, color 0.2s;
+.fp-qtoggle {
+  flex:1; max-width:76px; height:40px; border-radius:20px; border:none;
+  background:rgba(255,255,255,0.08); color:rgba(255,255,255,0.7);
+  display:flex; align-items:center; justify-content:center;
+  cursor:pointer; margin:0 4px;
+  transition:background 0.2s, color 0.2s, transform 0.15s var(--spring);
 }
-.fp-extra:hover { background:var(--surface); color:var(--text1); }
-.fp-extra:active { transform:scale(0.93); }
-.fp-extra.on { color:var(--accent); }
-.fp-extra svg { width:22px; height:22px; }
+.fp-qtoggle:active { transform:scale(0.9); }
+.fp-qtoggle.lit { background:rgba(255,255,255,0.85); color:#000; }
+.fp-qtoggle svg { width:18px; height:18px; }
 
 /* ── UPLOAD PAGE ── */
 .drop-zone {
@@ -1874,7 +1963,7 @@ body {
 <div id="fp-art-flip"></div>
 
 <!-- FULL PLAYER -->
-<div id="full-player">
+<div id="full-player" data-fp-mode="play">
   <div id="fp-bg"></div>
   <div id="fp-blur"></div>
   <div id="fp-inner">
@@ -1888,7 +1977,7 @@ body {
       </button>
     </div>
     <div id="fp-art-wrap">
-      <div id="fp-art" class="paused glass-touch">
+      <div id="fp-art" class="paused glass-touch" onclick="if(_fpMode!=='play')_setFpMode('play')">
         <div id="fp-art-ph"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="color:rgba(255,255,255,0.35)"><path d="M9 19V6l12-3v13"/><circle cx="6" cy="19" r="3"/><circle cx="18" cy="16" r="3"/></svg></div>
         <img id="fp-art-img" style="display:none;width:100%;height:100%;object-fit:cover" alt="" onerror="imgErr(this)">
       </div>
@@ -1901,7 +1990,7 @@ body {
       <button id="fp-fav" onclick="toggleFav(currentIdx)">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>
       </button>
-      <button id="fp-more" onclick="openTrackCtx(library[currentIdx]?.id, event)">
+      <button id="fp-more" onclick="openFullPlayerMoreMenu(event)">
         <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
       </button>
     </div>
@@ -1934,11 +2023,29 @@ body {
     </div>
     <div id="fp-tabs">
       <div class="fp-tab-pill" id="fp-tab-pill"></div>
-      <div class="fp-tab active" data-tab="queue">File d'attente</div>
+      <div class="fp-tab" data-tab="queue">File d'attente</div>
       <div class="fp-tab" data-tab="lyrics">Paroles</div>
     </div>
     <div id="fp-tab-body">
-      <div id="fp-queue" class="open">
+      <div id="fp-queue">
+        <!-- Shuffle/repeat/autoplay/AirPlay toggles — only meaningful in
+             queue mode, matching the reference screenshots where these
+             appear specifically alongside the track list, not at all
+             times regardless of what's on screen. -->
+        <div id="fp-queue-toggles">
+          <button class="fp-qtoggle" id="fp-qtoggle-shuf" onclick="toggleShuffle()" title="Aléatoire">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/></svg>
+          </button>
+          <button class="fp-qtoggle" id="fp-qtoggle-rep" onclick="cycleRepeat()" title="Répéter">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 014-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 01-4 4H3"/></svg>
+          </button>
+          <button class="fp-qtoggle" id="fp-qtoggle-xfade" onclick="toggleCrossfade()" title="CrossFade">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8h1a4 4 0 010 8h-1"/><path d="M2 8h16v9a4 4 0 01-4 4H6a4 4 0 01-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>
+          </button>
+          <button class="fp-qtoggle" onclick="openAirPlay()" title="AirPlay">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 17H3a2 2 0 01-2-2V5a2 2 0 012-2h18a2 2 0 012 2v10a2 2 0 01-2 2h-2"/><polygon points="12 15 17 21 7 21 12 15"/></svg>
+          </button>
+        </div>
         <div class="queue-hd">Suivant</div>
         <div id="fp-queue-list" class="tlist" style="padding:0 6px"></div>
       </div>
@@ -1946,22 +2053,16 @@ body {
         <div id="fp-lyr-content"></div>
       </div>
     </div>
-    <div id="fp-extras">
-      <button class="fp-extra" id="fp-xfade" onclick="toggleCrossfade()">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8h1a4 4 0 010 8h-1"/><path d="M2 8h16v9a4 4 0 01-4 4H6a4 4 0 01-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>
-        CrossFade
+    <div id="fp-quickaccess">
+      <button class="fp-qa-btn" id="fp-qa-lyrics" onclick="toggleFpMode('lyrics')" title="Paroles">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
       </button>
-      <button class="fp-extra" onclick="openSleepModal()">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
-        Minuteur
-      </button>
-      <button class="fp-extra" onclick="openAirPlay()">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 17H3a2 2 0 01-2-2V5a2 2 0 012-2h18a2 2 0 012 2v10a2 2 0 01-2 2h-2"/><polygon points="12 15 17 21 7 21 12 15"/></svg>
-        AirPlay
-      </button>
-      <button class="fp-extra" onclick="cycleSpeed()" id="fp-speed">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
-        <span id="fp-speed-lbl">1×</span>
+      <div id="fp-qa-device">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+        <span id="fp-qa-device-lbl">Cet iPhone</span>
+      </div>
+      <button class="fp-qa-btn" id="fp-qa-queue" onclick="toggleFpMode('queue')" title="File d'attente">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
       </button>
     </div>
   </div>
@@ -2292,6 +2393,12 @@ async function playById(trackId, resetQ=true) {
   if (resetQ) buildQueue(trackId);
   currentIdx = idx;
 
+  // Post artwork/title/artist NOW — not after audio.play() resolves. The
+  // artwork data was already computed above (blobURLs[trackId].artURL),
+  // so there's nothing left to wait for; posting it here means the full
+  // player never opens onto a gray placeholder that then pops in.
+  _postArtworkAndMeta();
+
   audio.src = audioURL;
   audio.load(); // Force reload (fixes same-URL restart on iOS)
   audio.playbackRate = playSpeed;
@@ -2422,6 +2529,8 @@ function toggleShuffle() {
   const btn = $('fp-shuf-btn');
   btn.classList.toggle('lit', isShuffle);
   btn.classList.toggle('dim', !isShuffle);
+  const qbtn = $('fp-qtoggle-shuf');
+  if (qbtn) qbtn.classList.toggle('lit', isShuffle);
   if (currentIdx>=0) {
     buildQueue(library[currentIdx].id);
     // Si en pause, lancer la lecture après avoir mélangé
@@ -2444,6 +2553,8 @@ function cycleRepeat() {
   ];
   btn.innerHTML = icons[repeatMode];
   btn.className = 'fp-ctrl ' + (repeatMode>0?'lit':'dim');
+  const qbtn = $('fp-qtoggle-rep');
+  if (qbtn) qbtn.classList.toggle('lit', repeatMode > 0);
   if (repeatMode===1) toast('🔁 Répéter tout');
   else if (repeatMode===2) toast('🔂 Répéter ce titre');
   savePref();
@@ -2464,7 +2575,7 @@ function toggleCrossfade() {
   }
   _xfTapTime = now;
   isCrossfade = !isCrossfade;
-  const btn = $('fp-xfade');
+  const btn = $('fp-qtoggle-xfade');
   if (btn) btn.classList.toggle('lit', isCrossfade);
   toast(isCrossfade ? '🔊 CrossFade activé (' + XFADE + 's)' : '🔇 CrossFade désactivé');
   savePref();
@@ -2566,7 +2677,6 @@ function cycleSpeed() {
   const i = sp.indexOf(playSpeed);
   playSpeed = sp[(i+1)%sp.length];
   audio.playbackRate = playSpeed;
-  $('fp-speed-lbl').textContent = playSpeed + '×';
   toast(`Vitesse ${playSpeed}×`);
 }
 
@@ -2651,38 +2761,40 @@ $('fp-vol').addEventListener('input', e => {
 });
 
 // ─── UI UPDATES ────────────────────────────────────────────
-function updatePlayerUI() {
+// Posts title/artist/artwork into the DOM — split out from updatePlayerUI
+// so it can run BEFORE audio.play() resolves, not after. The artwork data
+// itself (blobURLs[t.id].artURL) is already computed earlier in playById(),
+// well before audio.play() is even reached — there was never a real reason
+// for the visible <img> update to wait for playback to start. This is what
+// actually removes the "gray artwork, then it pops in" delay, rather than
+// papering over it with a watcher that waits for something that no longer
+// needs waiting for.
+function _postArtworkAndMeta() {
   const t = library[currentIdx];
   if (!t) return;
   const artURL = blobURLs[t.id]?.artURL || null;
 
-  // Mini bar
   $('pp-title').textContent = t.title;
   $('pp-artist').textContent = t.artist;
   const ppImg = $('pp-art-img'), ppPh = $('pp-art-ph');
   if (artURL) { ppImg.src=artURL; ppImg.style.display='block'; ppPh.style.display='none'; }
   else { ppImg.style.display='none'; ppPh.style.display='flex'; }
 
-  // Full player
   $('fp-title').textContent = t.title;
   $('fp-artist').textContent = t.artist;
   $('fp-hdtitle').textContent = t.album!=='Album inconnu' ? t.album : 'En cours';
-
   const fpImg = $('fp-art-img'), fpPh = $('fp-art-ph');
   if (artURL) { fpImg.src=artURL; fpImg.style.display='block'; fpPh.style.display='none'; }
   else { fpImg.style.display='none'; fpPh.style.display='flex'; }
 
-  // Hero
   $('hero-track').textContent = t.title;
   $('hero-artist').textContent = t.artist + (t.album!=='Album inconnu' ? ' — '+t.album : '');
   const heroBgImg = $('hero-bg-img');
   if (artURL) { heroBgImg.src=artURL; heroBgImg.style.display='block'; }
   else { heroBgImg.style.display='none'; }
 
-  // Fav
   updateFavBtn(t);
 
-  // Colors + blurred-artwork background (Apple Music Now Playing style)
   if (artURL) {
     _fpHasArt = true;
     $('fp-blur').style.background = `url("${artURL}") center center / cover no-repeat`;
@@ -2696,6 +2808,16 @@ function updatePlayerUI() {
     $('fp-blur').classList.remove('img');
     applyColors('#555','#222');
   }
+}
+
+function updatePlayerUI() {
+  const t = library[currentIdx];
+  if (!t) return;
+  const artURL = blobURLs[t.id]?.artURL || null;
+
+  // Title/artist/artwork/colors already posted by _postArtworkAndMeta()
+  // before playback started — see playById(). Only what genuinely depends
+  // on playback having begun (MediaSession state, icons) happens here.
 
   // MediaSession — only set metadata here; action handlers are set in 'playing' event
   // (iOS Safari requires handlers to be registered during playback to show next/prev buttons)
@@ -3715,6 +3837,7 @@ function playPlaylist(plId) {
   const ids=pl.trackIds.filter(id=>library.find(t=>t.id===id));
   if(!ids.length) return;
   isShuffle=false; $('fp-shuf-btn').classList.remove('lit'); $('fp-shuf-btn').classList.add('dim');
+  if ($('fp-qtoggle-shuf')) $('fp-qtoggle-shuf').classList.remove('lit');
   queue=[...ids]; queueIdx=0;
   currentIdx=library.findIndex(t=>t.id===ids[0]);
   playById(ids[0], false);
@@ -3729,6 +3852,7 @@ function shufflePlaylist(plId) {
   queue=[...ids]; queueIdx=0;
   currentIdx=library.findIndex(t=>t.id===ids[0]);
   isShuffle=true; $('fp-shuf-btn').classList.add('lit'); $('fp-shuf-btn').classList.remove('dim');
+  if ($('fp-qtoggle-shuf')) $('fp-qtoggle-shuf').classList.add('lit');
   playById(ids[0], false);
   toast('🔀 Lecture aléatoire');
 }
@@ -4047,6 +4171,28 @@ function openTrackCtx(trackId, event) {
     {label:'🗑️ Supprimer',cls:'red',action:()=>removeTrack(trackId)}
   ]);
 }
+
+// Dedicated menu for the full player's "..." button — the usual track
+// actions plus the advanced playback settings (CrossFade, Sleep Timer,
+// Speed) that used to be permanently visible under the queue list. Apple
+// Music itself tucks these into a menu rather than showing them at all
+// times regardless of what the person is looking at.
+function openFullPlayerMoreMenu(event) {
+  const t = library[currentIdx];
+  if (!t) return;
+  ctx(event, [
+    {label:t.favorite?'💔 Retirer des favoris':'❤️ Ajouter aux favoris', action:()=>toggleFav(t.id)},
+    {label:'📋 Ajouter à une playlist', action:()=>openAddToPlaylistModal(t.id)},
+    'sep',
+    {label:(isCrossfade?'🔊 CrossFade activé':'🔇 CrossFade') + ' (' + XFADE + 's)', action:()=>toggleCrossfade()},
+    {label:'⏰ Minuteur de sommeil', action:()=>openSleepModal()},
+    {label:'⏱ Vitesse — ' + playSpeed + '×', action:()=>cycleSpeed()},
+    {label:'📡 AirPlay', action:()=>openAirPlay()},
+    'sep',
+    {label:'🖼️ Changer la pochette', action:()=>{closeCtx();changeTrackArt(t.id);}},
+  ]);
+}
+
 
 function changeTrackArt(trackId) {
   const inp = document.createElement('input');
@@ -4380,18 +4526,10 @@ function openFullPlayer() {
       flip.style.borderRadius = '20px';
     });
 
-    // If the track was just started, its artwork may still be loading
-    // (posed asynchronously after audio.play() resolves, not at click
-    // time) — watch the mini-player's own art slot and, the moment a real
-    // image lands there, cross-fade the clone to match instead of flying
-    // the whole distance frozen on a gray placeholder. The clone is only
-    // handed off to the real #fp-art once this resolves (image found, or
-    // the ~1.5s ceiling is hit for a track with genuinely no artwork) —
-    // never on a fixed timer that might fire before loading is done.
-    _watchFlipArtworkArrival(flip, () => {
+    setTimeout(() => {
       flip.classList.remove('active');
       $('fp-art').style.opacity = '';
-    });
+    }, 460);
   } else {
     // Fallback: no mini-player visible to fly from (e.g. first launch,
     // nothing has ever played) — just open normally, no clone needed.
@@ -4400,52 +4538,21 @@ function openFullPlayer() {
   }
 }
 
-let _flipArtWatcher = null;
-function _watchFlipArtworkArrival(flip, onSettle) {
-  if (_flipArtWatcher) { clearInterval(_flipArtWatcher); _flipArtWatcher = null; }
-  const MIN_FLIGHT_MS = 460;   // let the fly-to-position motion complete even if art was already there
-  const MAX_WAIT_MS = 1600;    // ceiling for a track that genuinely has no artwork
-  const start = Date.now();
-  const alreadyHasImage = !!flip.querySelector('img');
-
-  function settle() {
-    clearInterval(_flipArtWatcher); _flipArtWatcher = null;
-    onSettle();
-  }
-
-  if (alreadyHasImage) {
-    // Artwork was already available at click time — just let the normal
-    // flight duration play out, no polling needed.
-    setTimeout(settle, MIN_FLIGHT_MS);
-    return;
-  }
-
-  _flipArtWatcher = setInterval(() => {
-    const elapsed = Date.now() - start;
-    const img = $('pp-art-img');
-    const found = img && img.style.display !== 'none' && img.src;
-    if (found) {
-      flip.style.transition += ', opacity 0.18s ease';
-      flip.style.opacity = '0.4';
-      requestAnimationFrame(() => {
-        flip.innerHTML = `<img src="${img.src}" alt="">`;
-        flip.style.opacity = '1';
-      });
-      // Still honor the minimum flight time so a fast-loading image
-      // doesn't cut the fly-to-position motion short.
-      setTimeout(settle, Math.max(0, MIN_FLIGHT_MS - elapsed) + 180);
-    } else if (elapsed > MAX_WAIT_MS || !flip.classList.contains('active')) {
-      settle();
-    }
-  }, 100);
-}
-
 function closeFullPlayer() {
   const el = $('full-player');
   if (!el) return;
   const miniArt = $('pp-art');
   const flip = $('fp-art-flip');
   const fpArtEl = document.querySelector('#fp-art-wrap #fp-art');
+
+  // Reset to the default "play" mode after the closing flight animation
+  // finishes, not before — resetting immediately would snap the shrunk
+  // queue/lyrics-mode artwork back to full size mid-flight, fighting with
+  // the clone that's flying from its (still shrunk) actual position.
+  // Without this reset at all, every reopen kept whatever mode was last
+  // active, so the clean default screen (large artwork, no tabs) could
+  // only ever be seen once, before the first tap on Lyrics or Queue.
+  const resetModeAfterClose = () => { if (_fpMode !== 'play') _setFpMode('play'); };
 
   if (miniArt && flip && fpArtEl && getComputedStyle($('player-bar')).display !== 'none') {
     const fromRect = fpArtEl.getBoundingClientRect();
@@ -4473,10 +4580,12 @@ function closeFullPlayer() {
     setTimeout(() => {
       flip.classList.remove('active');
       fpArtEl.style.opacity = '';
+      resetModeAfterClose();
     }, 460);
   } else {
     el.classList.remove('open');
     el.style.transform = '';
+    resetModeAfterClose();
   }
 }
 
@@ -4495,30 +4604,62 @@ fp.addEventListener('touchend',e=>{
 });
 
 // Tabs
-document.querySelectorAll('.fp-tab').forEach((tab, tabIdx)=>{
+// Single source of truth for which of the three full-player modes is
+// active: "play" (default — large artwork, no tabs, quick-access icon row),
+// "queue" (shrunk artwork, shuffle/repeat/crossfade/AirPlay toggles, track
+// list), "lyrics" (shrunk artwork, lyrics pane, no extra toggles). Both the
+// tab pill clicks and the quick-access icon buttons go through this one
+// function so the two entry points can never drift out of sync with each
+// other — previously the artwork only shrank for lyrics, never for queue,
+// even though both modes show a shrunk artwork in the reference screenshots.
+let _fpMode = 'play';
+function _setFpMode(mode) {
+  const fp = $('full-player');
+  const wasMode = _fpMode;
+  _fpMode = mode;
+  fp.setAttribute('data-fp-mode', mode);
+
+  document.querySelectorAll('.fp-tab').forEach(t => {
+    t.classList.toggle('active', t.dataset.tab === mode);
+  });
+  $('fp-tab-pill').style.transform = mode === 'lyrics' ? 'translateX(100%)' : 'translateX(0)';
+
+  if (mode === 'play') {
+    // Both panes close; nothing to show until a mode is picked again.
+    $('fp-queue').classList.remove('open');
+    $('fp-lyrics').classList.remove('open');
+    return;
+  }
+
+  const showQueue = mode === 'queue';
+  const enterDir = showQueue ? 'entering-left' : 'entering-right'; // queue is left tab, lyrics is right
+  const target = showQueue ? $('fp-queue') : $('fp-lyrics');
+  const other = showQueue ? $('fp-lyrics') : $('fp-queue');
+  other.classList.remove('open');
+  // Only animate the slide-in if we're actually switching between the two
+  // content tabs (queue<->lyrics) — coming from "play" mode has no
+  // sensible "from the side" direction since neither pane was open.
+  if (wasMode !== 'play') target.classList.add(enterDir);
+  target.classList.add('open');
+  if (wasMode !== 'play') {
+    void target.offsetWidth; // force reflow so the enter transform actually applies before removal
+    target.classList.remove(enterDir);
+  }
+  if (showQueue) updateQueueUI();
+  else renderLyrics();
+}
+
+// Called by the quick-access icons (default play-mode state) — tapping the
+// icon for the mode that's already active returns to plain "play" mode,
+// same toggle behavior as tapping an already-active tab.
+function toggleFpMode(mode) {
+  _setFpMode(_fpMode === mode ? 'play' : mode);
+}
+
+document.querySelectorAll('.fp-tab').forEach((tab)=>{
   tab.addEventListener('click',()=>{
     if (tab.classList.contains('active')) return; // no-op on re-tapping current tab
-    document.querySelectorAll('.fp-tab').forEach(t=>t.classList.remove('active'));
-    tab.classList.add('active');
-    $('fp-tab-pill').style.transform = tabIdx===0 ? 'translateX(0)' : 'translateX(100%)';
-    const showQueue = tab.dataset.tab==='queue';
-    const enterDir = showQueue ? 'entering-left' : 'entering-right'; // queue is left tab, lyrics is right
-    const target = showQueue ? $('fp-queue') : $('fp-lyrics');
-    const other = showQueue ? $('fp-lyrics') : $('fp-queue');
-    other.classList.remove('open');
-    target.classList.add(enterDir);
-    target.classList.add('open');
-    // Shrinks the artwork to a corner thumbnail, freeing real vertical
-    // space for the lyrics pane — see the [data-lyrics-mode] CSS block.
-    if (showQueue) $('full-player').removeAttribute('data-lyrics-mode');
-    else $('full-player').setAttribute('data-lyrics-mode', '');
-    // Force a reflow so the entering-* transform is actually applied before
-    // we remove it — otherwise the browser coalesces both class changes
-    // into one paint and the slide-in never plays.
-    void target.offsetWidth;
-    target.classList.remove(enterDir);
-    if(showQueue) updateQueueUI();
-    else renderLyrics();
+    _setFpMode(tab.dataset.tab);
   });
 });
 
@@ -5014,7 +5155,9 @@ async function init() {
   // Restore shuffle/repeat/crossfade UI
   $('fp-shuf-btn').classList.toggle('lit',isShuffle);
   $('fp-shuf-btn').classList.toggle('dim',!isShuffle);
-  if($('fp-xfade')) $('fp-xfade').classList.toggle('lit',isCrossfade);
+  if ($('fp-qtoggle-shuf')) $('fp-qtoggle-shuf').classList.toggle('lit', isShuffle);
+  if ($('fp-qtoggle-rep')) $('fp-qtoggle-rep').classList.toggle('lit', repeatMode > 0);
+  if($('fp-qtoggle-xfade')) $('fp-qtoggle-xfade').classList.toggle('lit',isCrossfade);
 
   // Greeting time-based
   const h=new Date().getHours();
